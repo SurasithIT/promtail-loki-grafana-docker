@@ -1,0 +1,42 @@
+version: '3.4'
+
+services:
+  loki:
+    container_name: loki
+    image: grafana/loki:2.6.1
+    ports:
+       - 3100:3100
+    command: -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - ./promtailloki/loki:/etc/loki
+      - ./loki/data:/tmp/loki
+    healthcheck:
+        test: wget -q --tries=1 -O- http://localhost:3100/ready 
+        interval: 3s
+        timeout: 3s
+        retries: 10
+        start_period: 10s
+
+  promtail:
+    container_name: promtail 
+    image: grafana/promtail:2.6.1
+    volumes:
+      - ./loki/log:/var/log
+      - ./promtailloki/promtail:/etc/promtail
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    depends_on:
+      loki:
+        condition: service_healthy
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana-data:/var/lib/grafana
+    depends_on:
+      loki:
+        condition: service_healthy
