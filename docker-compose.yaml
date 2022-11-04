@@ -1,21 +1,23 @@
-version: '3.4'
+version: '3.5'
 
 services:
   loki:
     container_name: loki
     image: grafana/loki:2.6.1
     ports:
-       - 3100:3100
+      - 3100:3100
     command: -config.file=/etc/loki/loki-config.yaml
     volumes:
       - ./config/loki:/etc/loki
       - ./loki/data:/tmp/loki
     healthcheck:
-        test: wget -q --tries=1 -O- http://localhost:3100/ready 
-        interval: 3s
-        timeout: 3s
-        retries: 10
-        start_period: 10s
+      test: wget -q --tries=1 -O- http://localhost:3100/ready 
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - loki-grafana-network
 
   promtail:
     container_name: promtail 
@@ -27,6 +29,8 @@ services:
     depends_on:
       loki:
         condition: service_healthy
+    networks:
+      - loki-grafana-network
 
   grafana:
     container_name: grafana
@@ -40,3 +44,10 @@ services:
     depends_on:
       loki:
         condition: service_healthy
+    networks:
+      - loki-grafana-network
+
+networks:
+  loki-grafana-network:
+    name: loki-grafana-network
+    driver: bridge
